@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="将 Material for MkDocs 扩展 Markdown 语法转换为更通用的标准 Markdown。"
+    />
+    <title>MkDocs Material Markdown 转换器</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">GitHub Pages 静态工具</p>
+          <h1>MkDocs Material Markdown 转换器</h1>
+          <p class="intro">
+            粘贴 Material for MkDocs 文档，自动降级为更通用的 Markdown。
+          </p>
+        </div>
+        <div class="actions" aria-label="主要操作">
+          <button class="button secondary" id="sampleButton" type="button">载入示例</button>
+          <button class="button secondary" id="clearButton" type="button">清空</button>
+          <button class="button secondary" id="downloadButton" type="button">下载 .md</button>
+          <button class="button primary" id="copyButton" type="button">复制结果</button>
+        </div>
+      </header>
+
+      <section class="workspace" aria-label="Markdown 转换工作区">
+        <div class="editor-panel">
+          <div class="panel-head">
+            <div>
+              <h2>输入</h2>
+              <p id="inputMeta">0 字符，0 行</p>
+            </div>
+            <span class="status-dot" id="convertStatus">等待输入</span>
+          </div>
+          <textarea
+            id="sourceInput"
+            spellcheck="false"
+            placeholder="在这里粘贴 mkdocs-material Markdown..."
+          ></textarea>
+        </div>
+
+        <div class="editor-panel">
+          <div class="panel-head">
+            <div>
+              <h2>输出</h2>
+              <p id="outputMeta">0 字符，0 行</p>
+            </div>
+            <span class="status-dot success" id="copyStatus">本地转换</span>
+          </div>
+          <textarea id="resultOutput" spellcheck="false" readonly></textarea>
+        </div>
+      </section>
+
+      <section class="control-grid" aria-label="转换设置和统计">
+        <div class="tool-panel options-panel">
+          <div class="section-head">
+            <h2>转换选项</h2>
+            <p>按目标平台调整保留程度。</p>
+          </div>
+
+          <label class="select-row" for="tabHeadingLevel">
+            <span>内容标签标题级别</span>
+            <select id="tabHeadingLevel">
+              <option value="3">###</option>
+              <option value="4" selected>####</option>
+              <option value="5">#####</option>
+            </select>
+          </label>
+
+          <div class="option-list">
+            <label><input id="stripAttributes" type="checkbox" checked /> 移除 attribute lists / 按钮样式</label>
+            <label><input id="removeMoreComments" type="checkbox" checked /> 移除 &lt;!--more--&gt; 摘要分隔符</label>
+            <label><input id="convertYamlFrontMatter" type="checkbox" checked /> 转换 YAML front matter 为 Markdown 元素</label>
+            <label><input id="stripMaterialIcons" type="checkbox" checked /> 移除 Material / FontAwesome 图标 shortcode</label>
+            <label><input id="stripEmojiShortcodes" type="checkbox" /> 同时移除普通 emoji shortcode</label>
+            <label><input id="convertAnnotations" type="checkbox" checked /> 转换 annotation 标记和代码注释标记</label>
+            <label><input id="convertFormatting" type="checkbox" checked /> 转换 pymdownx formatting / keys</label>
+            <label><input id="unwrapHtmlBlocks" type="checkbox" checked /> 展开 grid、card、figure 包装</label>
+            <label><input id="removeSnippetIncludes" type="checkbox" checked /> 将 snippet include 转为注释占位</label>
+            <label><input id="normalizeFenceInfo" type="checkbox" checked /> 清理代码块扩展参数</label>
+          </div>
+        </div>
+
+        <div class="tool-panel stats-panel">
+          <div class="section-head">
+            <h2>命中统计</h2>
+            <p>用于快速确认哪些 Material 语法被处理。</p>
+          </div>
+          <div class="stat-grid" id="statsGrid"></div>
+          <div class="warnings" id="warnings" hidden></div>
+        </div>
+      </section>
+
+      <section class="rules tool-panel" aria-label="转换规则摘要">
+        <div class="section-head">
+          <h2>当前支持规则</h2>
+          <p>目标是保留正文结构，删除主题和扩展相关表现层语法。</p>
+        </div>
+        <div class="rule-list">
+          <div><strong>Admonitions / Details</strong><span>转为 blockquote，标题加粗。</span></div>
+          <div><strong>Content tabs</strong><span>转为可移植的小标题和正文。</span></div>
+          <div><strong>Buttons / Attribute lists</strong><span>保留链接、图片和文本，移除样式属性。</span></div>
+          <div><strong>Annotations</strong><span>正文标记转为 [1]，代码行末 annotation 注释被移除。</span></div>
+          <div><strong>Icons / Emojis</strong><span>默认移除 Material 系图标 shortcode，可选移除全部 shortcode。</span></div>
+          <div><strong>Grids / Cards / Captions</strong><span>展开包装，保留内部 Markdown 和说明文字。</span></div>
+          <div><strong>Formatting / Keys</strong><span>高亮、critic markup、键盘组合等降级为常见 Markdown。</span></div>
+          <div><strong>YAML front matter</strong><span>标题、摘要、日期、标签等转换为标准 Markdown。</span></div>
+          <div><strong>More marker</strong><span>移除博客摘要分隔符 &lt;!--more--&gt;。</span></div>
+          <div><strong>Snippets</strong><span>浏览器无法读取本地文件，转为注释占位。</span></div>
+        </div>
+      </section>
+    </main>
+
+    <script src="converter.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>

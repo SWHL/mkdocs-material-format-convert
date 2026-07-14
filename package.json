@@ -1,0 +1,10 @@
+{
+  "name": "mkdocs-format-convert",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Static browser tool that converts Material for MkDocs Markdown extensions to portable Markdown.",
+  "scripts": {
+    "test": "node tests/converter.test.js"
+  },
+  "devDependencies": {}
+}
