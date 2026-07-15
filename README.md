@@ -2,6 +2,8 @@
 
 一个可部署到 GitHub Pages 的纯前端小工具，用于把 Material for MkDocs 扩展 Markdown 语法降级为更通用的 Markdown。转换在浏览器本地完成，不上传文档内容。
 
+页面内置 Markdown 预览视图，可在转换结果和渲染预览之间切换检查。
+
 ## 支持范围
 
 当前转换规则主要覆盖 Material for MkDocs 官方参考中最常见、最影响迁移的语法：
