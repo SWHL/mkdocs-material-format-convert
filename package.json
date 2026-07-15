@@ -4,7 +4,7 @@
   "private": true,
   "description": "Static browser tool that converts Material for MkDocs Markdown extensions to portable Markdown.",
   "scripts": {
-    "test": "node tests/converter.test.js"
+    "test": "node tests/converter.test.js && node tests/find-replace.test.js"
   },
   "devDependencies": {}
 }

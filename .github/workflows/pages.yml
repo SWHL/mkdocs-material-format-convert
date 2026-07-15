@@ -29,7 +29,7 @@ jobs:
       - name: Prepare static files
         run: |
           mkdir _site
-          cp index.html styles.css converter.js app.js _site/
+          cp index.html styles.css converter.js find-replace.js app.js _site/
 
       - name: Upload static files
         uses: actions/upload-pages-artifact@v4

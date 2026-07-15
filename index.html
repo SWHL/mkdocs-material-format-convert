@@ -35,7 +35,57 @@
               <h2>输入</h2>
               <p id="inputMeta">0 字符，0 行</p>
             </div>
-            <span class="status-dot" id="convertStatus">等待输入</span>
+            <div class="panel-head-actions">
+              <button
+                class="panel-tool-button"
+                id="findToggleButton"
+                type="button"
+                aria-expanded="false"
+                aria-controls="findReplaceBar"
+              >
+                查找替换
+              </button>
+              <span class="status-dot" id="convertStatus">等待输入</span>
+            </div>
+          </div>
+          <div class="find-replace-bar" id="findReplaceBar" hidden>
+            <div class="find-row">
+              <label for="findInput">查找</label>
+              <div class="find-field">
+                <input
+                  id="findInput"
+                  type="search"
+                  autocomplete="off"
+                  spellcheck="false"
+                  placeholder="查找内容"
+                />
+                <span class="find-match-status" id="findMatchStatus" aria-live="polite">0/0</span>
+              </div>
+              <div class="find-nav" aria-label="查找导航">
+                <button id="findPreviousButton" type="button" title="上一个匹配" aria-label="上一个匹配">↑</button>
+                <button id="findNextButton" type="button" title="下一个匹配" aria-label="下一个匹配">↓</button>
+                <button id="findCloseButton" type="button" title="关闭查找替换" aria-label="关闭查找替换">×</button>
+              </div>
+            </div>
+            <div class="find-row">
+              <label for="replaceInput">替换</label>
+              <input
+                class="find-text-input"
+                id="replaceInput"
+                type="text"
+                autocomplete="off"
+                spellcheck="false"
+                placeholder="替换为"
+              />
+              <div class="find-commands">
+                <button id="replaceButton" type="button">替换</button>
+                <button id="replaceAllButton" type="button">全部替换</button>
+              </div>
+            </div>
+            <label class="find-option">
+              <input id="matchCaseInput" type="checkbox" />
+              区分大小写
+            </label>
           </div>
           <textarea
             id="sourceInput"
@@ -146,6 +196,7 @@
     </main>
 
     <script src="converter.js"></script>
+    <script src="find-replace.js"></script>
     <script src="app.js"></script>
   </body>
 </html>

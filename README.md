@@ -2,7 +2,7 @@
 
 一个可部署到 GitHub Pages 的纯前端小工具，用于把 Material for MkDocs 扩展 Markdown 语法降级为更通用的 Markdown。转换在浏览器本地完成，不上传文档内容。
 
-页面内置 Markdown 预览视图，可在转换结果和渲染预览之间切换检查。
+页面内置 Markdown 预览视图，可在转换结果和渲染预览之间切换检查。输入区支持查找替换、大小写匹配、逐项替换和全部替换。
 
 ## 支持范围
 
@@ -48,5 +48,7 @@ npm test
 - `index.html`：静态页面入口。
 - `styles.css`：页面样式。
 - `converter.js`：转换器核心，浏览器和 Node 测试共用。
+- `find-replace.js`：输入区查找替换逻辑，浏览器和 Node 测试共用。
 - `app.js`：页面交互。
 - `tests/converter.test.js`：无依赖 Node 测试。
+- `tests/find-replace.test.js`：查找替换逻辑测试。

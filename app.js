@@ -95,7 +95,21 @@
   var clearButton = document.getElementById("clearButton");
   var sampleButton = document.getElementById("sampleButton");
   var tabHeadingLevel = document.getElementById("tabHeadingLevel");
+  var findToggleButton = document.getElementById("findToggleButton");
+  var findReplaceBar = document.getElementById("findReplaceBar");
+  var findInput = document.getElementById("findInput");
+  var replaceInput = document.getElementById("replaceInput");
+  var matchCaseInput = document.getElementById("matchCaseInput");
+  var findMatchStatus = document.getElementById("findMatchStatus");
+  var findPreviousButton = document.getElementById("findPreviousButton");
+  var findNextButton = document.getElementById("findNextButton");
+  var findCloseButton = document.getElementById("findCloseButton");
+  var replaceButton = document.getElementById("replaceButton");
+  var replaceAllButton = document.getElementById("replaceAllButton");
   var activeOutputView = "markdown";
+  var findMatches = [];
+  var activeFindIndex = -1;
+  var findStatusTimer;
 
   function readOptions() {
     var options = {
@@ -588,6 +602,155 @@
     saveState();
   }
 
+  function openFindReplace(focusReplacement) {
+    findReplaceBar.hidden = false;
+    findToggleButton.setAttribute("aria-expanded", "true");
+
+    var selectedText = sourceInput.value.slice(
+      sourceInput.selectionStart,
+      sourceInput.selectionEnd
+    );
+
+    if (!findInput.value && selectedText && !/[\r\n]/.test(selectedText)) {
+      findInput.value = selectedText;
+    }
+
+    refreshFindMatches(sourceInput.selectionStart);
+
+    if (focusReplacement) {
+      replaceInput.focus();
+      replaceInput.select();
+      return;
+    }
+
+    findInput.focus();
+    findInput.select();
+  }
+
+  function closeFindReplace() {
+    findReplaceBar.hidden = true;
+    findToggleButton.setAttribute("aria-expanded", "false");
+    sourceInput.focus();
+  }
+
+  function refreshFindMatches(preferredPosition) {
+    window.clearTimeout(findStatusTimer);
+    findMatches = window.MarkdownFindReplace.findMatches(
+      sourceInput.value,
+      findInput.value,
+      matchCaseInput.checked
+    );
+
+    if (!findInput.value || !findMatches.length) {
+      activeFindIndex = -1;
+    } else {
+      activeFindIndex = findMatches.findIndex(function (match) {
+        return match.start >= preferredPosition;
+      });
+
+      if (activeFindIndex === -1) {
+        activeFindIndex = 0;
+      }
+    }
+
+    updateFindControls();
+  }
+
+  function updateFindControls() {
+    var hasMatches = findMatches.length > 0;
+    findPreviousButton.disabled = !hasMatches;
+    findNextButton.disabled = !hasMatches;
+    replaceButton.disabled = !hasMatches;
+    replaceAllButton.disabled = !hasMatches;
+
+    if (!findInput.value) {
+      findMatchStatus.textContent = "0/0";
+      return;
+    }
+
+    findMatchStatus.textContent = hasMatches
+      ? activeFindIndex + 1 + "/" + findMatches.length
+      : "无匹配";
+  }
+
+  function selectFindMatch(index) {
+    if (!findMatches.length) {
+      return;
+    }
+
+    activeFindIndex = (index + findMatches.length) % findMatches.length;
+    var match = findMatches[activeFindIndex];
+    sourceInput.focus();
+    sourceInput.setSelectionRange(match.start, match.end);
+    updateFindControls();
+  }
+
+  function navigateFind(direction) {
+    if (!findMatches.length) {
+      refreshFindMatches(sourceInput.selectionStart);
+    }
+
+    if (!findMatches.length) {
+      return;
+    }
+
+    var activeMatch = findMatches[activeFindIndex];
+    var activeIsSelected =
+      activeMatch &&
+      sourceInput.selectionStart === activeMatch.start &&
+      sourceInput.selectionEnd === activeMatch.end;
+    var nextIndex = activeIsSelected ? activeFindIndex + direction : activeFindIndex;
+
+    if (!activeIsSelected && direction < 0) {
+      nextIndex = activeFindIndex - 1;
+    }
+
+    selectFindMatch(nextIndex);
+  }
+
+  function replaceCurrentMatch() {
+    if (!findMatches.length || activeFindIndex < 0) {
+      return;
+    }
+
+    var match = findMatches[activeFindIndex];
+    sourceInput.value = window.MarkdownFindReplace.replaceMatch(
+      sourceInput.value,
+      match,
+      replaceInput.value
+    );
+    convertNow();
+    refreshFindMatches(match.start + replaceInput.value.length);
+
+    if (findMatches.length) {
+      selectFindMatch(activeFindIndex);
+    } else {
+      var caretPosition = match.start + replaceInput.value.length;
+      sourceInput.focus();
+      sourceInput.setSelectionRange(caretPosition, caretPosition);
+    }
+  }
+
+  function replaceEveryMatch() {
+    if (!findMatches.length) {
+      return;
+    }
+
+    var replacementCount = findMatches.length;
+    var firstMatchStart = findMatches[0].start;
+    sourceInput.value = window.MarkdownFindReplace.replaceAll(
+      sourceInput.value,
+      findMatches,
+      replaceInput.value
+    );
+    convertNow();
+    refreshFindMatches(firstMatchStart);
+    findMatchStatus.textContent = "已替换 " + replacementCount + " 处";
+    findStatusTimer = window.setTimeout(updateFindControls, 1400);
+    sourceInput.focus();
+    sourceInput.setSelectionRange(firstMatchStart, firstMatchStart);
+  }
+
   function copyResult() {
     var text = resultOutput.value;
 
@@ -659,7 +822,10 @@
   }
 
   function bindEvents() {
-    sourceInput.addEventListener("input", convertNow);
+    sourceInput.addEventListener("input", function () {
+      convertNow();
+      refreshFindMatches(sourceInput.selectionStart);
+    });
     sourceInput.addEventListener("scroll", function () {
       syncScroll(sourceInput, resultOutput);
     });
@@ -678,16 +844,76 @@
       });
     });
 
+    findToggleButton.addEventListener("click", function () {
+      if (findReplaceBar.hidden) {
+        openFindReplace(false);
+      } else {
+        closeFindReplace();
+      }
+    });
+    findCloseButton.addEventListener("click", closeFindReplace);
+    findInput.addEventListener("input", function () {
+      refreshFindMatches(sourceInput.selectionStart);
+    });
+    matchCaseInput.addEventListener("change", function () {
+      refreshFindMatches(sourceInput.selectionStart);
+    });
+    findPreviousButton.addEventListener("click", function () {
+      navigateFind(-1);
+    });
+    findNextButton.addEventListener("click", function () {
+      navigateFind(1);
+    });
+    replaceButton.addEventListener("click", replaceCurrentMatch);
+    replaceAllButton.addEventListener("click", replaceEveryMatch);
+    findInput.addEventListener("keydown", function (event) {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        navigateFind(event.shiftKey ? -1 : 1);
+        findInput.focus();
+      }
+    });
+    replaceInput.addEventListener("keydown", function (event) {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        replaceCurrentMatch();
+        replaceInput.focus();
+      }
+    });
+    findReplaceBar.addEventListener("keydown", function (event) {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closeFindReplace();
+      }
+    });
+    document.addEventListener("keydown", function (event) {
+      var commandKey = event.metaKey || event.ctrlKey;
+      var key = event.key.toLowerCase();
+
+      if (commandKey && key === "f") {
+        event.preventDefault();
+        openFindReplace(false);
+      } else if (commandKey && key === "h") {
+        event.preventDefault();
+        openFindReplace(true);
+      } else if (event.key === "F3" && !findReplaceBar.hidden) {
+        event.preventDefault();
+        navigateFind(event.shiftKey ? -1 : 1);
+      }
+    });
+
     copyButton.addEventListener("click", copyResult);
     downloadButton.addEventListener("click", downloadResult);
     clearButton.addEventListener("click", function () {
       sourceInput.value = "";
       convertNow();
+      refreshFindMatches(0);
       sourceInput.focus();
     });
     sampleButton.addEventListener("click", function () {
       sourceInput.value = SAMPLE;
       convertNow();
+      refreshFindMatches(0);
       sourceInput.focus();
     });
   }
