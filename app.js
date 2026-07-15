@@ -78,6 +78,12 @@
 
   var sourceInput = document.getElementById("sourceInput");
   var resultOutput = document.getElementById("resultOutput");
+  var previewOutput = document.getElementById("previewOutput");
+  var markdownView = document.getElementById("markdownView");
+  var previewView = document.getElementById("previewView");
+  var outputViewTabs = Array.prototype.slice.call(
+    document.querySelectorAll("[data-output-view]")
+  );
   var statsGrid = document.getElementById("statsGrid");
   var warnings = document.getElementById("warnings");
   var inputMeta = document.getElementById("inputMeta");
@@ -89,6 +95,7 @@
   var clearButton = document.getElementById("clearButton");
   var sampleButton = document.getElementById("sampleButton");
   var tabHeadingLevel = document.getElementById("tabHeadingLevel");
+  var activeOutputView = "markdown";
 
   function readOptions() {
     var options = {
@@ -106,6 +113,7 @@
     var state = {
       source: sourceInput.value,
       options: readOptions(),
+      outputView: activeOutputView,
     };
 
     try {
@@ -140,6 +148,10 @@
           tabHeadingLevel.value = String(state.options.tabHeadingLevel);
         }
       }
+
+      if (state.outputView === "preview") {
+        activeOutputView = "preview";
+      }
     } catch (_) {
       return;
     }
@@ -150,6 +162,7 @@
     var result = window.MkdocsMaterialConverter.convert(input, readOptions());
 
     resultOutput.value = result.markdown;
+    renderPreview(result.markdown);
     renderMeta(inputMeta, input);
     renderMeta(outputMeta, result.markdown);
     renderStats(result.stats);
@@ -211,6 +224,368 @@
       .replace(/>/g, "&gt;")
       .replace(/\"/g, "&quot;")
       .replace(/'/g, "&#039;");
+  }
+
+  function renderPreview(markdown) {
+    var rendered = renderMarkdown(markdown);
+    previewOutput.innerHTML = rendered || '<p class="preview-empty">暂无预览内容</p>';
+  }
+
+  function renderMarkdown(markdown) {
+    var lines = String(markdown || "").replace(/\r\n?/g, "\n").split("\n");
+    return renderBlocks(lines).trim();
+  }
+
+  function renderBlocks(lines) {
+    var html = [];
+    var index = 0;
+
+    while (index < lines.length) {
+      var line = lines[index];
+
+      if (!line.trim()) {
+        index += 1;
+        continue;
+      }
+
+      if (isFenceStart(line)) {
+        var codeBlock = renderCodeBlock(lines, index);
+        html.push(codeBlock.html);
+        index = codeBlock.next;
+        continue;
+      }
+
+      if (/^\s{0,3}>/.test(line)) {
+        var quoteBlock = renderBlockquote(lines, index);
+        html.push(quoteBlock.html);
+        index = quoteBlock.next;
+        continue;
+      }
+
+      if (isTableStart(lines, index)) {
+        var tableBlock = renderTable(lines, index);
+        html.push(tableBlock.html);
+        index = tableBlock.next;
+        continue;
+      }
+
+      if (isListStart(line)) {
+        var listBlock = renderList(lines, index);
+        html.push(listBlock.html);
+        index = listBlock.next;
+        continue;
+      }
+
+      if (/^\s{0,3}(#{1,6})\s+(.+?)\s*#*\s*$/.test(line)) {
+        html.push(renderHeading(line));
+        index += 1;
+        continue;
+      }
+
+      if (/^\s{0,3}([-*_])(?:\s*\1){2,}\s*$/.test(line)) {
+        html.push("<hr />");
+        index += 1;
+        continue;
+      }
+
+      var paragraph = collectParagraph(lines, index);
+      html.push("<p>" + renderInline(paragraph.text) + "</p>");
+      index = paragraph.next;
+    }
+
+    return html.join("\n");
+  }
+
+  function isFenceStart(line) {
+    return /^\s{0,3}```/.test(line);
+  }
+
+  function renderCodeBlock(lines, start) {
+    var first = lines[start].trim();
+    var language = first.replace(/^```+/, "").trim().split(/\s+/)[0] || "";
+    var content = [];
+    var index = start + 1;
+
+    while (index < lines.length && !/^\s{0,3}```\s*$/.test(lines[index])) {
+      content.push(lines[index]);
+      index += 1;
+    }
+
+    if (index < lines.length) {
+      index += 1;
+    }
+
+    var languageClass = language ? ' class="language-' + escapeAttribute(language) + '"' : "";
+
+    return {
+      html: "<pre><code" + languageClass + ">" + escapeHtml(content.join("\n")) + "</code></pre>",
+      next: index,
+    };
+  }
+
+  function renderBlockquote(lines, start) {
+    var content = [];
+    var index = start;
+
+    while (index < lines.length) {
+      if (!lines[index].trim()) {
+        content.push("");
+        index += 1;
+        continue;
+      }
+
+      if (!/^\s{0,3}>/.test(lines[index])) {
+        break;
+      }
+
+      content.push(lines[index].replace(/^\s{0,3}>\s?/, ""));
+      index += 1;
+    }
+
+    return {
+      html: "<blockquote>" + renderBlocks(content) + "</blockquote>",
+      next: index,
+    };
+  }
+
+  function isTableStart(lines, index) {
+    return (
+      index + 1 < lines.length &&
+      /\|/.test(lines[index]) &&
+      /^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?\s*$/.test(lines[index + 1])
+    );
+  }
+
+  function renderTable(lines, start) {
+    var headers = splitTableRow(lines[start]);
+    var alignments = splitTableRow(lines[start + 1]).map(function (cell) {
+      var value = cell.trim();
+
+      if (/^:-+:$/.test(value)) {
+        return "center";
+      }
+
+      if (/^-+:$/.test(value)) {
+        return "right";
+      }
+
+      return /^:-+$/.test(value) ? "left" : "";
+    });
+    var rows = [];
+    var index = start + 2;
+
+    while (index < lines.length && /\|/.test(lines[index]) && lines[index].trim()) {
+      rows.push(splitTableRow(lines[index]));
+      index += 1;
+    }
+
+    var head = headers
+      .map(function (cell, cellIndex) {
+        return renderTableCell("th", cell, alignments[cellIndex]);
+      })
+      .join("");
+    var body = rows
+      .map(function (row) {
+        return (
+          "<tr>" +
+          row
+            .map(function (cell, cellIndex) {
+              return renderTableCell("td", cell, alignments[cellIndex]);
+            })
+            .join("") +
+          "</tr>"
+        );
+      })
+      .join("");
+
+    return {
+      html: "<table><thead><tr>" + head + "</tr></thead><tbody>" + body + "</tbody></table>",
+      next: index,
+    };
+  }
+
+  function splitTableRow(row) {
+    var cells = row.trim().replace(/^\|/, "").replace(/\|$/, "").split("|");
+    return cells.map(function (cell) {
+      return cell.trim();
+    });
+  }
+
+  function renderTableCell(tag, cell, alignment) {
+    var style = alignment ? ' style="text-align: ' + alignment + '"' : "";
+    return "<" + tag + style + ">" + renderInline(cell) + "</" + tag + ">";
+  }
+
+  function isListStart(line) {
+    return /^\s{0,3}(?:[-*+]\s+|\d+\.\s+)/.test(line);
+  }
+
+  function renderList(lines, start) {
+    var ordered = /^\s{0,3}\d+\.\s+/.test(lines[start]);
+    var tag = ordered ? "ol" : "ul";
+    var items = [];
+    var index = start;
+
+    while (index < lines.length && isListStart(lines[index])) {
+      var item = lines[index].replace(/^\s{0,3}(?:[-*+]|\d+\.)\s+/, "");
+      index += 1;
+
+      while (
+        index < lines.length &&
+        lines[index].trim() &&
+        !startsNewBlock(lines[index]) &&
+        /^\s{2,}/.test(lines[index])
+      ) {
+        item += "\n" + lines[index].trim();
+        index += 1;
+      }
+
+      items.push("<li>" + renderInline(item).replace(/\n/g, "<br />") + "</li>");
+    }
+
+    return {
+      html: "<" + tag + ">" + items.join("") + "</" + tag + ">",
+      next: index,
+    };
+  }
+
+  function renderHeading(line) {
+    var match = line.match(/^\s{0,3}(#{1,6})\s+(.+?)\s*#*\s*$/);
+    var level = match[1].length;
+    return "<h" + level + ">" + renderInline(match[2]) + "</h" + level + ">";
+  }
+
+  function collectParagraph(lines, start) {
+    var parts = [];
+    var index = start;
+
+    while (index < lines.length && lines[index].trim() && !startsNewBlock(lines[index], lines[index + 1])) {
+      parts.push(lines[index].trim());
+      index += 1;
+    }
+
+    return {
+      text: parts.join(" "),
+      next: index,
+    };
+  }
+
+  function startsNewBlock(line, nextLine) {
+    return (
+      isFenceStart(line) ||
+      /^\s{0,3}>/.test(line) ||
+      /^\s{0,3}(#{1,6})\s+/.test(line) ||
+      /^\s{0,3}([-*_])(?:\s*\1){2,}\s*$/.test(line) ||
+      isListStart(line) ||
+      (typeof nextLine === "string" && isTableStart([line, nextLine], 0))
+    );
+  }
+
+  function renderInline(text) {
+    var tokens = [];
+    var source = String(text || "");
+
+    function hold(html) {
+      tokens.push(html);
+      return "\u0000" + (tokens.length - 1) + "\u0000";
+    }
+
+    source = source.replace(/`([^`]+)`/g, function (_, code) {
+      return hold("<code>" + escapeHtml(code) + "</code>");
+    });
+
+    source = source.replace(/!\[([^\]]*)\]\(([^)\s]+)(?:\s+\"([^\"]*)\")?\)/g, function (
+      _,
+      alt,
+      url,
+      title
+    ) {
+      var safe = sanitizeUrl(url);
+
+      if (!safe) {
+        return alt;
+      }
+
+      var titleAttr = title ? ' title="' + escapeAttribute(title) + '"' : "";
+      return hold(
+        '<img src="' +
+          escapeAttribute(safe) +
+          '" alt="' +
+          escapeAttribute(alt) +
+          '"' +
+          titleAttr +
+          " />"
+      );
+    });
+
+    source = source.replace(/\[([^\]]+)\]\(([^)\s]+)(?:\s+\"([^\"]*)\")?\)/g, function (
+      _,
+      label,
+      url,
+      title
+    ) {
+      var safe = sanitizeUrl(url);
+
+      if (!safe) {
+        return label;
+      }
+
+      var titleAttr = title ? ' title="' + escapeAttribute(title) + '"' : "";
+      return hold(
+        '<a href="' +
+          escapeAttribute(safe) +
+          '"' +
+          titleAttr +
+          ' target="_blank" rel="noopener noreferrer">' +
+          renderInline(label) +
+          "</a>"
+      );
+    });
+
+    var html = escapeHtml(source)
+      .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+      .replace(/__([^_]+)__/g, "<strong>$1</strong>")
+      .replace(/~~([^~]+)~~/g, "<del>$1</del>")
+      .replace(/\*([^*\s][^*]*?)\*/g, "<em>$1</em>")
+      .replace(/_([^_\s][^_]*?)_/g, "<em>$1</em>");
+
+    return html.replace(/\u0000(\d+)\u0000/g, function (_, index) {
+      return tokens[Number(index)] || "";
+    });
+  }
+
+  function sanitizeUrl(url) {
+    var value = String(url || "").trim().replace(/[\u0000-\u001f\u007f\s]/g, "");
+
+    if (
+      /^(https?:|mailto:)/i.test(value) ||
+      /^#/.test(value) ||
+      /^\//.test(value) ||
+      /^\.\.?\//.test(value) ||
+      /^[^:]+$/.test(value)
+    ) {
+      return value;
+    }
+
+    return "";
+  }
+
+  function escapeAttribute(value) {
+    return escapeHtml(value).replace(/`/g, "&#096;");
+  }
+
+  function setOutputView(view) {
+    activeOutputView = view === "preview" ? "preview" : "markdown";
+
+    outputViewTabs.forEach(function (button) {
+      var isActive = button.dataset.outputView === activeOutputView;
+      button.classList.toggle("is-active", isActive);
+      button.setAttribute("aria-selected", String(isActive));
+    });
+
+    markdownView.hidden = activeOutputView !== "markdown";
+    previewView.hidden = activeOutputView !== "preview";
+    saveState();
   }
 
   function copyResult() {
@@ -297,6 +672,12 @@
       document.getElementById(id).addEventListener("change", convertNow);
     });
 
+    outputViewTabs.forEach(function (button) {
+      button.addEventListener("click", function () {
+        setOutputView(button.dataset.outputView);
+      });
+    });
+
     copyButton.addEventListener("click", copyResult);
     downloadButton.addEventListener("click", downloadResult);
     clearButton.addEventListener("click", function () {
@@ -313,5 +694,6 @@
 
   loadState();
   bindEvents();
+  setOutputView(activeOutputView);
   convertNow();
 })();

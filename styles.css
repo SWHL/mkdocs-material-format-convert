@@ -51,7 +51,7 @@ input {
   margin-bottom: 20px;
 }
 
-.topbar > div:first-child {
+.topbar>div:first-child {
   min-width: 0;
 }
 
@@ -208,6 +208,186 @@ textarea:focus {
 
 textarea[readonly] {
   background: #f8faf9;
+}
+
+.view-tabs {
+  display: flex;
+  gap: 8px;
+  border-bottom: 1px solid var(--line);
+  padding: 10px 18px;
+  background: #f8faf9;
+}
+
+.view-tab {
+  min-height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 0 12px;
+  color: var(--muted);
+  background: #fff;
+  cursor: pointer;
+  font-weight: 700;
+  transition: border-color 140ms ease, background 140ms ease, color 140ms ease;
+}
+
+.view-tab:hover,
+.view-tab:focus-visible {
+  border-color: var(--accent);
+  outline: none;
+}
+
+.view-tab.is-active {
+  border-color: var(--accent);
+  color: var(--accent-dark);
+  background: var(--accent-soft);
+}
+
+.output-view[hidden] {
+  display: none;
+}
+
+.markdown-preview {
+  min-height: 560px;
+  max-height: 760px;
+  overflow: auto;
+  padding: 20px 22px 26px;
+  background: #fbfcfc;
+  color: #111816;
+  line-height: 1.72;
+}
+
+.markdown-preview>*+* {
+  margin-top: 1em;
+}
+
+.markdown-preview h1,
+.markdown-preview h2,
+.markdown-preview h3,
+.markdown-preview h4,
+.markdown-preview h5,
+.markdown-preview h6 {
+  margin: 1.4em 0 0.55em;
+  line-height: 1.25;
+  letter-spacing: 0;
+}
+
+.markdown-preview h1:first-child,
+.markdown-preview h2:first-child,
+.markdown-preview h3:first-child,
+.markdown-preview h4:first-child,
+.markdown-preview h5:first-child,
+.markdown-preview h6:first-child {
+  margin-top: 0;
+}
+
+.markdown-preview h1 {
+  white-space: normal;
+  font-size: 2rem;
+}
+
+.markdown-preview h2 {
+  font-size: 1.45rem;
+}
+
+.markdown-preview h3 {
+  font-size: 1.22rem;
+}
+
+.markdown-preview h4,
+.markdown-preview h5,
+.markdown-preview h6 {
+  font-size: 1rem;
+}
+
+.markdown-preview p,
+.markdown-preview ul,
+.markdown-preview ol,
+.markdown-preview blockquote,
+.markdown-preview pre,
+.markdown-preview table {
+  margin-bottom: 0;
+}
+
+.markdown-preview ul,
+.markdown-preview ol {
+  padding-left: 1.45rem;
+}
+
+.markdown-preview li+li {
+  margin-top: 0.28em;
+}
+
+.markdown-preview a {
+  color: var(--accent-dark);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+.markdown-preview blockquote {
+  border-left: 4px solid var(--accent);
+  padding: 0.1rem 0 0.1rem 1rem;
+  color: #34443f;
+  background: linear-gradient(90deg, rgba(223, 242, 235, 0.85), rgba(223, 242, 235, 0));
+}
+
+.markdown-preview code {
+  border: 1px solid #dbe4e1;
+  border-radius: 5px;
+  padding: 0.1rem 0.32rem;
+  background: #eef4f1;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 0.9em;
+}
+
+.markdown-preview pre {
+  overflow: auto;
+  border-radius: 7px;
+  padding: 14px 16px;
+  background: #101816;
+  color: #f6fffb;
+}
+
+.markdown-preview pre code {
+  border: 0;
+  padding: 0;
+  color: inherit;
+  background: transparent;
+  font-size: 0.9rem;
+}
+
+.markdown-preview img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: 7px;
+}
+
+.markdown-preview table {
+  display: block;
+  width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+}
+
+.markdown-preview th,
+.markdown-preview td {
+  border: 1px solid var(--line);
+  padding: 8px 10px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.markdown-preview th {
+  background: var(--panel-strong);
+}
+
+.markdown-preview hr {
+  border: 0;
+  border-top: 1px solid var(--line);
+}
+
+.preview-empty {
+  color: var(--muted);
 }
 
 .control-grid {
@@ -367,6 +547,10 @@ select {
     min-height: 420px;
   }
 
+  .markdown-preview {
+    min-height: 420px;
+  }
+
   .rule-list {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -419,6 +603,19 @@ select {
     font-size: 0.88rem;
   }
 
+  .view-tabs {
+    padding: 10px 14px;
+  }
+
+  .markdown-preview {
+    min-height: 360px;
+    padding: 16px 14px 20px;
+  }
+
+  .markdown-preview h1 {
+    font-size: 1.5rem;
+  }
+
   .rule-list {
     grid-template-columns: 1fr;
   }
@@ -432,6 +629,7 @@ select {
     border-top: 0;
   }
 }
+
 @media (max-width: 380px) {
   h1 {
     font-size: 1.05rem;

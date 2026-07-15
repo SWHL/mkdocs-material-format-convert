@@ -52,7 +52,36 @@
             </div>
             <span class="status-dot success" id="copyStatus">本地转换</span>
           </div>
-          <textarea id="resultOutput" spellcheck="false" readonly></textarea>
+          <div class="view-tabs" role="tablist" aria-label="输出视图">
+            <button
+              class="view-tab is-active"
+              id="markdownTab"
+              type="button"
+              role="tab"
+              aria-selected="true"
+              aria-controls="markdownView"
+              data-output-view="markdown"
+            >
+              Markdown
+            </button>
+            <button
+              class="view-tab"
+              id="previewTab"
+              type="button"
+              role="tab"
+              aria-selected="false"
+              aria-controls="previewView"
+              data-output-view="preview"
+            >
+              预览
+            </button>
+          </div>
+          <div class="output-view" id="markdownView" role="tabpanel" aria-labelledby="markdownTab">
+            <textarea id="resultOutput" spellcheck="false" readonly></textarea>
+          </div>
+          <div class="output-view" id="previewView" role="tabpanel" aria-labelledby="previewTab" hidden>
+            <div class="markdown-preview" id="previewOutput"></div>
+          </div>
         </div>
       </section>
 
